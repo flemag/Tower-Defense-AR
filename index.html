@@ -2,7 +2,7 @@
 <html lang="fr">
 <!--
   ============================================================================
-  ARÈNE DÉFENSE v7 — Tower defense en réalité augmentée (fichier HTML unique)
+  ARÈNE DÉFENSE v8 — Tower defense en réalité augmentée (fichier HTML unique)
   ============================================================================
   Dessinez VOTRE terrain à 4 coins sur la table, choisissez le style de chemin
   (serpentin, zigzag, spirale, lacets, boucle, escalier, dédale — ou aléatoire)
@@ -32,9 +32,16 @@
   Compatibilité : la RA exige Chrome sur Android + Google Play Services for AR.
     Sur iPhone/iPad, Safari ne prend pas en charge WebXR : aucune demande de
     caméra n'apparaît (c'est une limite d'Apple, pas un bug) — le bouton
-    « Jouer sans RA » y lance alors le même jeu en mode 3D à l'écran
-    (1 doigt = orbiter / poser, pincement ou molette = zoomer). Ce mode 3D
-    est aussi le repli sur Android sans ARCore et sur ordinateur.
+    « Jouer sans RA » y lance alors le même jeu en mode 3D à l'écran. Ce mode
+    3D est aussi le repli sur Android sans ARCore et sur ordinateur.
+
+  v8 : accueil épuré (une action principale + détails repliables), mode 3D
+    complet sur écran tactile — 1 doigt : orbiter / poser · 2 doigts :
+    DÉPLACER le terrain (pan) et zoomer (pincement) · molette : zoom — et
+    calibrage des routes revu : écart minimal garanti entre couloirs
+    (LANE_PITCH_MIN) calculé sur la fraction d'axe réellement utilisée par
+    les gabarits → il reste TOUJOURS une bande bâtissable pour poser les
+    tours, même sur un terrain juste (routes légèrement plus étroites).
 
   Performances : réticule ancré sur le plan du terrain dès le 1er coin
   (projection regard/plan → zéro clignotement, le hit-test n'est plus
@@ -81,16 +88,15 @@
     background:radial-gradient(1200px 800px at 50% -10%, #16283a 0%, #0b0f14 60%); }
   .hidden{ display:none !important; }
 
-  /* ---- écran d'accueil ---- */
-  .intro-card{ width:min(430px,100%); background:var(--panel); border:1px solid rgba(255,255,255,.09);
-    border-radius:20px; padding:26px 24px; box-shadow:0 20px 60px rgba(0,0,0,.5);
+  /* ---- écran d'accueil (épuré : 1 action + détails repliables) ---- */
+  .intro-card{ width:min(400px,100%); background:var(--panel); border:1px solid rgba(255,255,255,.09);
+    border-radius:20px; padding:24px 22px 14px; box-shadow:0 20px 60px rgba(0,0,0,.5);
     backdrop-filter:blur(14px); -webkit-backdrop-filter:blur(14px); }
-  .logo{ font-size:44px; text-align:center; }
-  h1{ margin:.15em 0 .1em; text-align:center; font-size:26px; letter-spacing:.5px; }
-  .tagline{ text-align:center; color:#b8c7d1; font-size:14px; margin:0 0 16px; line-height:1.45; }
-  .steps{ margin:0 0 16px; padding-left:20px; color:#cfdde6; font-size:13.5px; line-height:1.55; }
-  .steps li{ margin:6px 0; }
-  .capa{ font-size:13px; line-height:1.45; border-radius:10px; padding:10px 12px; margin-bottom:16px;
+  .logo{ font-size:40px; text-align:center; }
+  h1{ margin:.12em 0 .1em; text-align:center; font-size:24px; letter-spacing:.5px; }
+  .tagline{ text-align:center; color:#b8c7d1; font-size:13.5px; margin:0 0 14px; line-height:1.5;
+    max-width:34ch; margin-left:auto; margin-right:auto; }
+  .capa{ font-size:12.5px; line-height:1.5; border-radius:10px; padding:9px 11px; margin-bottom:12px;
     color:#c6d5de; background:rgba(255,255,255,.05); border:1px solid rgba(255,255,255,.09); }
   .capa.ok{ color:#86efac; border-color:rgba(134,239,172,.35); background:rgba(134,239,172,.08); }
   .capa a,.errorbox a,.warn a{ color:#93c5fd; }
@@ -100,6 +106,11 @@
   .secondary{ display:block; width:100%; margin-top:10px; padding:12px 16px; font-size:15px; color:#d7e6ee;
     background:rgba(255,255,255,.08); border:1px solid rgba(255,255,255,.14); }
   button:disabled{ opacity:.45; cursor:not-allowed; box-shadow:none; }
+  /* variante « lien discret » pour l'action secondaire de l'accueil */
+  .linklike{ display:block; width:100%; margin-top:10px; padding:7px 6px; font-size:13px;
+    color:#9fb3c0; background:none; border:none; border-radius:8px;
+    text-decoration:underline dotted rgba(159,179,192,.45); text-underline-offset:3px; }
+  .linklike:active{ color:#cfe3ec; background:rgba(255,255,255,.05); }
   .footnote{ margin:16px 0 0; font-size:12px; color:#8fa3b0; text-align:center; line-height:1.5; }
   .warn{ margin-top:12px; font-size:13px; color:#fde68a; background:rgba(253,230,138,.08);
     border:1px solid rgba(253,230,138,.3); border-radius:10px; padding:10px 12px; line-height:1.45; }
@@ -180,6 +191,21 @@
   .saveBlock .svInfo{ font-size:13px; color:#c6d5de; line-height:1.55; margin:6px 0 12px; }
   .saveBlock .svInfo b{ color:#fff; }
   #btnClearSave{ margin-top:8px; font-size:13px; }
+
+  /* ---- accordéons de l'accueil (details/summary natifs) ---- */
+  details.faq{ text-align:left; margin-top:12px; padding-top:10px;
+    border-top:1px solid rgba(255,255,255,.09); }
+  details.faq summary{ list-style:none; cursor:pointer; font-size:13.5px; color:#9fb3c0;
+    padding:3px 2px; border-radius:8px; touch-action:manipulation; user-select:none; -webkit-user-select:none; }
+  details.faq summary::-webkit-details-marker{ display:none; }
+  details.faq summary::after{ content:'▾'; float:right; color:#5f7482; }
+  details.faq[open] summary{ color:#cfe3ec; }
+  details.faq[open] summary::after{ content:'▴'; }
+  .faqBody{ font-size:12.5px; color:#c6d5de; line-height:1.6; padding:6px 2px 4px; }
+  .faqBody p{ margin:6px 0; }
+  .faqBody b{ color:#eef4f8; }
+  .faqBody .steps{ margin:4px 0 6px; padding-left:18px; color:#c6d5de; line-height:1.55; }
+  .faqBody .steps li{ margin:6px 0; }
 
   /* ---- bouton son du HUD ---- */
   .stat.mute{ pointer-events:auto; cursor:pointer; touch-action:manipulation; }
@@ -350,52 +376,61 @@
   </div>
 </div>
 
-<!-- ============ Écran d'accueil ============ -->
+<!-- ============ Écran d'accueil (épuré : une action principale,
+     une puce d'état appareil, détails repliables) ============ -->
 <section id="intro">
   <div class="intro-card">
     <div class="logo">🏰</div>
     <h1>ARène Défense</h1>
-    <p class="tagline">Un tower defense en réalité augmentée, dessiné par vos soins sur votre
-      table basse : tracez le terrain à 4 coins, choisissez le style de chemin et la
-      difficulté — 7 gabarits de parcours calibrés automatiquement à la taille de votre
-      terrain, 5 biomes (prairie, dunes, toundra, volcan, marais) — et défendez le
-      cristal contre des hordes d'ennemis animés, pendant qu'arches et spores
-      lumineuses habillent l'arène !</p>
-    <ol class="steps">
-      <li>En RA : <b>autorisez la caméra</b> au démarrage — en mode 3D, <b>aucune caméra</b> n'est utilisée.</li>
-      <li><b>Balayez lentement la table</b> pour la scanner, puis touchez <b>4 fois</b> pour
-        tracer les <b>coins de votre terrain</b> — taille libre (≈ 30 cm à 1,2 m).</li>
-      <li><b>Validez puis choisissez le style et la difficulté</b> : l'application
-        dessine un <b>parcours calibré</b> à votre terrain — serpentin, zigzag, spirale,
-        lacets, boucle, escalier ou dédale — et l'habille d'un <b>biome</b> tiré au sort
-        (prairie, dunes, toundra, volcan, marais). Sur un petit cadre, le chemin se
-        resserre automatiquement : la partie reste jouable — rapprochez-vous ensuite
-        pour mieux voir les combats !</li>
-      <li><b>Touchez directement l'endroit choisi dans le terrain</b> pour y déployer une tour —
-        la tour apparaît là où votre doigt touche, pas là où la caméra regarde.</li>
-      <li>Lancez les <b>vagues</b> : 🫧 gelées, ⚡ voltines rapides, 🪨 golems blindés, 👻 spectres
-        insensibles au gel… et un 👑 <b>Roi des Gelées</b> toutes les 5 vagues !</li>
-      <li>La partie est <b>sauvegardée automatiquement</b> (à la fin de chaque vague) :
-        reprenez plus tard <b>sur le même terrain</b>, exactement où vous l'aviez laissée. 💾</li>
-    </ol>
+    <p class="tagline">Dessinez votre terrain, posez vos tours, défendez le cristal —
+      en 3D sur l'écran ou en réalité augmentée sur votre table.</p>
+
     <div id="capaInfo" class="capa">Détection des capacités de l'appareil…</div>
     <div id="xrFailNote" class="errorbox hidden"></div>
     <div id="libError" class="errorbox hidden"></div>
+
     <div id="saveBlock" class="saveBlock hidden">
-      <div class="svTitle">💾 Sauvegarde trouvée</div>
+      <div class="svTitle">💾 Partie en cours</div>
       <div id="saveInfo" class="svInfo"></div>
       <button id="btnResume" class="primary">▶ Reprendre la partie</button>
       <button id="btnClearSave" class="secondary">🗑 Effacer cette sauvegarde</button>
     </div>
-    <button id="btnStartAR" class="primary">🎮 Démarrer en réalité augmentée</button>
-    <button id="btnStartPreview" class="secondary">🎮 Jouer sans RA — mode 3D</button>
-    <p class="footnote">
-      AR recommandée : Chrome sur Android + Google Play Services for AR.<br />
-      iPhone/iPad et ordinateurs : jouez en <b>mode 3D</b> — Safari ne prend pas en charge
-      la RA Web, donc <b>aucune demande de caméra n'apparaît, c'est normal</b>.<br />
-      La page doit être servie en <b>HTTPS</b> (caméra et XR l'exigent).<br />
-      Graphismes ajustés automatiquement selon les FPS de l'appareil.
-    </p>
+
+    <button id="btnStartAR" class="primary hidden">🎮 Jouer en réalité augmentée</button>
+    <button id="btnStartPreview" class="primary">🎮 Jouer en 3D</button>
+
+    <details class="faq">
+      <summary>Comment jouer ?</summary>
+      <div class="faqBody">
+        <ol class="steps">
+          <li><b>Tracez</b> les 4 coins de votre terrain — sur la table (RA) ou
+            directement à l'écran (3D), taille libre (≈ 30 cm à 1,2 m).</li>
+          <li><b>Choisissez</b> le style de chemin (serpentin, spirale, dédale…) et la
+            difficulté — le parcours est <b>calibré automatiquement</b> à la taille du
+            terrain : il reste toujours de la place pour vos tours.</li>
+          <li><b>Posez des tours</b> 🏹 ❄️ 💥 en touchant le terrain, et surveillez votre or 🪙.</li>
+          <li><b>Encaissez les vagues</b> 🌊 — gelées, voltines, golems, spectres… et un
+            👑 boss toutes les 5 vagues. Le cristal 💎 tombe = partie perdue.</li>
+          <li>Sauvegarde <b>automatique</b> 💾 : reprenez plus tard exactement où vous
+            en étiez, sur le même terrain.</li>
+        </ol>
+      </div>
+    </details>
+    <details class="faq">
+      <summary>Compatibilité &amp; commandes</summary>
+      <div class="faqBody">
+        <p><b>🎮 En 3D (tous appareils)</b> — 1 doigt : orbiter · toucher bref : poser ·
+          2 doigts : <b>déplacer le terrain</b> et zoomer (pincement) · molette : zoom.</p>
+        <p><b>📱 En RA</b> — balayez la table pour la scanner, touchez pour tracer et poser.
+          Nécessite <b>Chrome sur Android</b> + <i>Google Play Services pour la RA</i> et une
+          page servie en <b>HTTPS</b> :
+          <a href="https://play.google.com/store/apps/details?id=com.google.ar.core" target="_blank" rel="noopener">installer ARCore ↗</a> ·
+          <a href="https://developers.google.com/ar/devices" target="_blank" rel="noopener">appareils compatibles ↗</a></p>
+        <p><b>🍎 iPhone / iPad</b> — Safari ne peut pas utiliser la RA Web : aucune demande
+          de caméra n'apparaît, <b>c'est normal</b> — le mode 3D offre le même jeu.</p>
+        <p>Graphismes ajustés automatiquement selon les FPS de l'appareil.</p>
+      </div>
+    </details>
     <div id="secureWarn" class="warn hidden">
       ⚠️ Contexte non sécurisé détecté : la réalité augmentée nécessite <b>HTTPS</b>
       (ou localhost). Hébergez ce fichier (GitHub Pages, Netlify…) puis rouvrez-le.
@@ -557,6 +592,8 @@ let speedScale = 1;              /* vitesse des ennemis / projectiles adaptée *
    décor, ennemis). */
 let pathHalf = 0.052;            /* demi-largeur du ruban de chemin (m) */
 let layoutK = 1;                 /* facteur d'échelle du layout ≈ min(axes)/0,78 */
+let LANE_PITCH_MIN = 0.17;       /* écart mini ENTRE couloirs : garantit une bande
+                                     bâtissable (tour + marge) entre deux routes */
 let enemyScale = 1;              /* taille visuelle des ennemis */
 let towerScale = 1;              /* taille visuelle des tours */
 function computeLayout(){
@@ -564,11 +601,17 @@ function computeLayout(){
   const uLen = (distXZ(A, B) + distXZ(D, C)) / 2;
   const vLen = (distXZ(B, C) + distXZ(A, D)) / 2;
   layoutK = clamp(Math.min(uLen, vLen) / 0.78, 0.55, 1.15);
-  pathHalf = 0.052 * layoutK;              /* 2,9 cm (petit cadre) → 6 cm (grand) */
+  pathHalf = clamp(0.046 * layoutK, 0.02, 0.052);    /* 4–9 cm de large (plus étroit qu'avant : la place des tours prime) */
   enemyScale = clamp(layoutK, 0.72, 1.08);
   towerScale = clamp(layoutK, 0.82, 1.1);
   TOWER_MIN_DIST = 0.055 * towerScale;
   PATH_MIN_DIST = Math.max(0.03, pathHalf * 0.96);
+  /* Invariant de jouabilité (retour utilisateur : « il reste très peu de place
+     pour placer les tours ») : l'écart centre-à-centre entre deux couloirs
+     parallèles doit laisser, entre les bords de route, l'empreinte d'une tour
+     (ø ≈ 3,8 cm × towerScale) + 2 marges de 1 cm. Les gabarits placent leurs
+     couloirs sur ~66 % de l'axe d'empilement → planLanes s'y calibre. */
+  LANE_PITCH_MIN = 2 * pathHalf + 0.038 * towerScale + 0.02;
 }
 const waveHp    = n => Math.round(20 * Math.pow(diff ? diff.growth : 1.22, n - 1)
                                 * (diff ? diff.hpMul : 1));
@@ -908,18 +951,22 @@ function disposeGroup(g){
    ============================================================ */
 let lastLanes = 0, lastWanted = 0;
 function planLanes(want){
-  /* les couloires traversent le grand axe ; on empile sur le petit axe.
-     MIN_PITCH ≈ 3,3 largeurs de chemin → couloires bien séparés.
-     Sur un petit terrain le pas se resserre (chemin plus étroit) →
-     autant de couloirs que sur un grand : le parcours reste long et jouable. */
+  /* les couloirs traversent le grand axe ; on empile sur le petit axe.
+     CORRECTIF (retour utilisateur : routes collées, plus de place pour les
+     tours) : les gabarits n'utilisent que ~66 % de l'axe d'empilement (marges
+     latérales du serpentin) — le nombre de couloirs s'en calcule donc sur
+     cette fraction RÉELLEMENT disponible, avec LANE_PITCH_MIN qui garantit
+     une bande bâtissable entre deux routes (voir computeLayout). Résultat :
+     moins de couloirs sur les terrains justes, mais toujours la place de
+     poser des tours — le « juste milieu » demandé. */
   const A = quadCorners[0], B = quadCorners[1], C = quadCorners[2], D = quadCorners[3];
   const uLen = (distXZ(A, B) + distXZ(D, C)) / 2;
   const vLen = (distXZ(B, C) + distXZ(A, D)) / 2;
-  const transpose = vLen > uLen;                 /* couloires le long de l'axe v */
+  const transpose = vLen > uLen;                 /* couloirs le long de l'axe v */
   const span = transpose ? uLen : vLen;          /* place disponible pour empiler */
-  const MIN_PITCH = 0.17 * layoutK;
-  const maxLanes = clamp(Math.floor((span - 0.09 * layoutK) / MIN_PITCH) + 1, 1, 6);
-  return { lanes: clamp(want, 1, maxLanes), maxLanes, transpose };
+  const usable = 0.66;                           /* fraction d'axe réellement couverte */
+  const maxLanes = clamp(Math.floor(span * usable / LANE_PITCH_MIN) + 1, 1, 6);
+  return { lanes: clamp(want, 1, maxLanes), maxLanes, transpose, span };
 }
 /* ---- gabarits de chemin (coordonnées u,v ∈ [0,1] du terrain) ---- */
 const TEMPLATE_FN = {
@@ -951,9 +998,12 @@ const TEMPLATE_FN = {
     }
     return { uv, transpose: plan.transpose, lanes: legs };
   },
-  /* spirale carrée qui s'enroule vers le cristal (au centre) */
+  /* spirale carrée qui s'enroule vers le cristal (au centre) — l'écart entre
+     spires est calibré sur LANE_PITCH_MIN : une tour tient toujours entre
+     deux anneaux, quelle que soit la taille du terrain */
   spirale(rng, plan){
-    const m = 0.11 + rng() * .02, step = 0.14 + rng() * .02;
+    const step = clamp(LANE_PITCH_MIN / Math.max(plan.span, .1), .15, .26);
+    const m = Math.max(.11 + rng() * .02, step * .8);
     let lo = m, hi = 1 - m;
     const uv = [[lo, lo]];
     const add = (x, y) => {
@@ -970,9 +1020,10 @@ const TEMPLATE_FN = {
     add((lo + hi) / 2, (lo + hi) / 2);
     return { uv, transpose: plan.transpose, lanes: 3 };
   },
-  /* grandes courbes en S (lacets de montagne) */
+  /* grandes courbes en S (lacets de montagne) — virages plafonnés pour
+     garder la bande bâtissable entre eux */
   lacets(rng, plan){
-    const bends = clamp(plan.lanes, 2, 4);
+    const bends = clamp(Math.min(plan.lanes, Math.max(2, plan.maxLanes - 1)), 2, 4);
     const uv = [];
     const n = bends + 1;
     for (let i = 0; i < n; i++){
@@ -995,9 +1046,11 @@ const TEMPLATE_FN = {
     return { uv, transpose: plan.transpose, lanes: 3 };
   },
   /* marches d'escalier en cascade d'un coin à l'autre (v monotone → aucun
-     croisement) ; deux paliers pleine largeur rallongent le parcours */
+     croisement) ; le nombre de marches est plafonné pour garantir l'écart
+     bâtissable entre paliers (~76 % de l'axe d'empilement utilisé) */
   escalier(rng, plan){
-    const steps = clamp(plan.lanes + 1, 3, 5);
+    const stepsMax = Math.max(2, Math.floor(0.76 * plan.span / LANE_PITCH_MIN));
+    const steps = clamp(Math.min(plan.lanes + 1, stepsMax), 2, 5);
     const u0 = .07 + rng() * .03, u1 = .93 - rng() * .03;
     const v0 = .12 + rng() * .05, v1 = .88 - rng() * .05;
     const uv = [[u0, v0], [u1, v0]];
@@ -2317,7 +2370,7 @@ function restoreFromSave(){
 }
 function refreshSaveUI(){
   const sv = loadSave();
-  if (!sv){ saveBlock.classList.add('hidden'); return; }
+  if (!sv){ saveBlock.classList.add('hidden'); updateStartButtons(); return; }
   saveBlock.classList.remove('hidden');
   const d = DIFFS[sv.map.diffKey];
   const pts = sv.map.corners.map(c => new THREE.Vector3(+c[0], 0, +c[1]));
@@ -2343,6 +2396,7 @@ function refreshSaveUI(){
       '<br><span style="color:#8fa3b0">Sauvegardé le ' + when + '.</span>';
     btnResume.textContent = '🏰 Rejouer sur ce terrain';
   }
+  updateStartButtons();   /* la reprise devient l'action principale, les départs passent en secondaire */
 }
 function resumeGame(){
   initAudio();
@@ -3670,6 +3724,7 @@ function applyOrbit(){
   camera.position.setFromSphericalCoords(orbit.dist, orbit.pol, orbit.az).add(orbitTarget);
   camera.position.y = Math.max(camera.position.y, orbitTarget.y + .16);
   camera.lookAt(orbitTarget);
+  camera.updateMatrixWorld();   /* rayons fiables même avant le 1er rendu */
 }
 const _ndc = new THREE.Vector2(), _ray = new THREE.Raycaster();
 function screenToArenaLocal(clientX, clientY){
@@ -3681,12 +3736,26 @@ function screenToArenaLocal(clientX, clientY){
 }
 /* ---- interaction tactile/souris du mode 3D ----
    1 doigt glissé = orbiter · 1 doigt posé bref = toucher (poser coin / tour)
-   2 doigts (pincement) = zoomer · molette = zoomer
-   Le suivi multi-pointeurs garantit qu'un pincement n'est JAMAIS interprété
-   comme un toucher de placement (sinon : tours fantômes sur iPhone). */
+   2 doigts écartés/rapprochés (pincement) = zoomer
+   2 doigts glissés ensemble = DÉPLACER le terrain (pan) · molette = zoomer
+   Le suivi multi-pointeurs garantit qu'un pincement ou un pan n'est JAMAIS
+   interprété comme un toucher de placement (sinon : tours fantômes). */
 const activePtrs = new Map();
-let pinchBase = 0, pinchDist0 = 0, multiTouch = false;
+let pinchBase = 0, pinchDist0 = 0, multiTouch = false, lastMid = null;
 const DIST_MIN = .5, DIST_MAX = 3.2;        /* limites du zoom orbite (m) */
+const PAN_MAX = 1.0;                        /* bornes du déplacement du terrain (m) */
+/* « saisir le sol » : le point du terrain sous les doigts reste sous les
+   doigts. k ≈ hauteur visible à l'écran / hauteur en pixels. */
+function panOrbit(dxPx, dyPx){
+  const k = 1.35 * orbit.dist / Math.max(innerHeight, 400);
+  const ca = Math.cos(orbit.az), sa = Math.sin(orbit.az);
+  /* droite caméra = (cos az, 0, −sin az) · avant XZ = (−sin az, 0, −cos az) :
+     glisser à droite → la visée part à gauche ; glisser vers le bas → elle
+     s'éloigne — exactement comme une carte que l'on déplace du doigt. */
+  orbitTarget.x = clamp(orbitTarget.x + (-ca * dxPx - sa * dyPx) * k, -PAN_MAX, PAN_MAX);
+  orbitTarget.z = clamp(orbitTarget.z + ( sa * dxPx - ca * dyPx) * k, -PAN_MAX, PAN_MAX);
+  applyOrbit();
+}
 canvasEl.addEventListener('pointerdown', e => {
   if (mode !== 'preview') return;
   activePtrs.set(e.pointerId, { x:e.clientX, y:e.clientY });
@@ -3694,24 +3763,31 @@ canvasEl.addEventListener('pointerdown', e => {
   if (activePtrs.size === 1){
     multiTouch = false;
     ptr.down = true; ptr.moved = false; ptr.x0 = e.clientX; ptr.y0 = e.clientY; ptr.t0 = performance.now();
-  } else {                                   /* 2e doigt : pincement → zoom */
-    multiTouch = true; ptr.moved = true;     /* un pincement n'est jamais un tap */
+  } else {                                   /* 2e doigt : pincement + pan */
+    multiTouch = true; ptr.moved = true;     /* un geste à 2 doigts n'est jamais un tap */
     const pts = [...activePtrs.values()];
     pinchBase = Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y);
     pinchDist0 = orbit.dist;
+    lastMid = null;                          /* ré-ancre le pan au geste courant */
   }
 });
 canvasEl.addEventListener('pointermove', e => {
   if (mode !== 'preview') return;
   const p = activePtrs.get(e.pointerId);
   if (p){ p.x = e.clientX; p.y = e.clientY; }
-  if (p && activePtrs.size >= 2){             /* zoom pincé */
+  if (p && activePtrs.size >= 2){             /* pincement (zoom) + pan (déplacement) */
     const pts = [...activePtrs.values()];
     const d = Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y);
+    const mid = { x:(pts[0].x + pts[1].x) / 2, y:(pts[0].y + pts[1].y) / 2 };
     if (pinchBase > 4){
       orbit.dist = Math.min(DIST_MAX, Math.max(DIST_MIN, pinchDist0 * pinchBase / Math.max(d, 1)));
-      applyOrbit();
     }
+    if (lastMid){
+      const dx = mid.x - lastMid.x, dy = mid.y - lastMid.y;
+      if (Math.hypot(dx, dy) > 1.5) panOrbit(dx, dy);
+    }
+    lastMid = mid;
+    applyOrbit();
     return;
   }
   if (!ptr.down || !p) return;
@@ -3732,9 +3808,10 @@ canvasEl.addEventListener('pointerup', e => {
     ptr.down = false;
     single = !multiTouch;
     multiTouch = false;
-  } else if (activePtrs.size === 1){          /* fin de pincement : le doigt restant re-drague */
+  } else if (activePtrs.size === 1){          /* fin de pincement/pan : le doigt restant re-drague */
     const rest = [...activePtrs.values()][0];
     ptr.x0 = rest.x; ptr.y0 = rest.y;
+    lastMid = null;
   }
   const quick = single && performance.now() - ptr.t0 < 400 && !ptr.moved;
   if (!quick || phase === 'gameover') return;
@@ -3751,6 +3828,7 @@ canvasEl.addEventListener('pointerup', e => {
 canvasEl.addEventListener('pointercancel', e => {
   activePtrs.delete(e.pointerId);
   if (!activePtrs.size){ ptr.down = false; multiTouch = false; }
+  lastMid = null;
 });
 canvasEl.addEventListener('wheel', e => {
   if (mode !== 'preview') return;
@@ -3997,9 +4075,11 @@ window.addEventListener('resize', () => {
 document.addEventListener('contextmenu', e => e.preventDefault());
 
 /* ============================================================
-   Détection des capacités + orientation selon l'appareil
-   (iPhone : pas de WebXR → aucune demande caméra, c'est normal ;
-    Android sans ARCore : lien Play Store ; le mode 3D prend
+   Détection des capacités + hiérarchie des boutons de l'accueil
+   (une seule action « primaire » : RA si disponible, sinon 3D ;
+    avec une sauvegarde : la reprise. iPhone : aucune demande de
+    caméra — Safari ne prend pas en charge WebXR, ce n'est pas un
+    bug ; Android sans ARCore : lien Play Store ; le mode 3D prend
     toujours le relais pour que le jeu soit jouable partout)
    ============================================================ */
 const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent)
@@ -4007,12 +4087,30 @@ const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent)
 const isAndroid = /Android/i.test(navigator.userAgent);
 const PLAY_ARCORE = 'https://play.google.com/store/apps/details?id=com.google.ar.core';
 const PLAY_DEVICES = 'https://developers.google.com/ar/devices';
-function promotePreview(){
-  if (btnStartPreview.classList.contains('primary')) return;
-  btnStartPreview.classList.remove('secondary');
-  btnStartPreview.classList.add('primary');
-  btnStartPreview.textContent = '🎮 Jouer maintenant — mode 3D';
+function setBtnStyle(btn, style){          /* '' | 'primary' | 'secondary' | 'linklike' */
+  btn.classList.remove('primary', 'secondary', 'linklike');
+  if (style) btn.classList.add(style);
 }
+function updateStartButtons(){
+  const hasSave = !saveBlock.classList.contains('hidden');
+  const ar = xrSupported && !previewForced;   /* échec XR en cours de route → 3D en vedette */
+  if (ar){
+    btnStartAR.classList.remove('hidden');
+    setBtnStyle(btnStartAR, hasSave ? 'secondary' : 'primary');
+    btnStartAR.textContent = hasSave ? '🏰 Nouvelle partie en réalité augmentée'
+                                     : '🎮 Jouer en réalité augmentée';
+    setBtnStyle(btnStartPreview, hasSave ? 'secondary' : 'linklike');
+    btnStartPreview.textContent = hasSave ? '🏰 Nouvelle partie en 3D'
+                                          : 'Préférer jouer en 3D, sans caméra →';
+  } else {
+    btnStartAR.classList.add('hidden');
+    setBtnStyle(btnStartPreview, hasSave ? 'secondary' : 'primary');
+    btnStartPreview.textContent = hasSave ? '🏰 Nouvelle partie en 3D'
+                                          : '🎮 Jouer en 3D';
+  }
+}
+function promotePreview(){ previewForced = true; updateStartButtons(); }
+let previewForced = false;   /* un échec RA en cours de route met le 3D en vedette */
 (async function detect(){
   if (!window.isSecureContext) $('secureWarn').classList.remove('hidden');
   let xrOK = false;
@@ -4021,31 +4119,21 @@ function promotePreview(){
   }
   if (xrOK){
     xrSupported = xrOK;
-    capaInfo.innerHTML = "✅ Réalité augmentée <b>disponible</b> sur cet appareil (WebXR + ARCore).";
+    capaInfo.innerHTML = "✅ Réalité augmentée <b>disponible</b> — la caméra sera demandée au démarrage.";
     capaInfo.classList.add('ok');
-    return;
-  }
-  /* ---- AR indisponible : diagnostic cibillé + mode 3D en vedette ---- */
-  if (isIOS){
-    capaInfo.innerHTML = "📱 <b>iPhone / iPad détecté</b> — Safari ne prend pas en charge la " +
-      "réalité augmentée Web (WebXR) : <b>la demande d'accès à la caméra n'apparaît donc jamais</b>, " +
-      "et ce n'est pas un bug de l'application.<br>👉 Bonne nouvelle : le jeu est <b>entièrement jouable " +
-      "en mode 3D</b> — même terrain, mêmes vagues, mêmes ennemis, au doigt !";
-    btnStartAR.classList.add('hidden');            /* pas de bouton mort sur iOS */
+  } else if (isIOS){
+    capaInfo.innerHTML = "📱 <b>iPhone détecté</b> — Safari ne prend pas en charge la RA Web : " +
+      "le jeu se joue ici <b>en 3D</b>, sans caméra. <i>(Détails : « Compatibilité » ci-dessous.)</i>";
   } else if (isAndroid){
-    capaInfo.innerHTML = "⚠️ La RA nécessite <b>Google Play Services pour la réalité augmentée</b> " +
-      "(ARCore), qui manque ou n'est pas encore installé ici :<br>1️⃣ Ouvrez le " +
-      "<a href='" + PLAY_ARCORE + "' target='_blank' rel='noopener'>Play Store</a>, mettez à jour " +
-      "« Services Google Play pour la RA », puis rechargez la page ;<br>2️⃣ Ou vérifiez que votre appareil est " +
-      "<a href='" + PLAY_DEVICES + "' target='_blank' rel='noopener'>compatible ARCore</a> " +
-      "(certains modèles ne le sont malheureusement pas).<br>👉 En attendant, le <b>mode 3D</b> est pleinement jouable.";
-    btnStartAR.disabled = true;
+    capaInfo.innerHTML = "⚠️ RA indisponible — il manque <b>Google Play Services pour la réalité augmentée</b> : " +
+      "<a href='" + PLAY_ARCORE + "' target='_blank' rel='noopener'>mettre à jour via le Play Store ↗</a> · " +
+      "<a href='" + PLAY_DEVICES + "' target='_blank' rel='noopener'>appareils compatibles ↗</a>. " +
+      "En attendant, le <b>mode 3D</b> est pleinement jouable.";
   } else {
-    capaInfo.innerHTML = "ℹ️ La RA WebXR n'est pas disponible dans ce navigateur — sur mobile, elle exige " +
-      "<b>Chrome sur Android</b> + <i>Google Play Services for AR</i>. Sur cet appareil, lancez le <b>mode 3D</b>.";
-    btnStartAR.disabled = true;
+    capaInfo.innerHTML = "🖥️ RA non disponible dans ce navigateur — le jeu se joue <b>en 3D</b>. " +
+      "<i>(La RA exige Chrome sur Android + ARCore.)</i>";
   }
-  promotePreview();
+  updateStartButtons();
 })();
 
 refreshSaveUI();   /* l'accueil propose la reprise si une sauvegarde existe */
@@ -4053,6 +4141,8 @@ refreshSaveUI();   /* l'accueil propose la reprise si une sauvegarde existe */
 /* Poignée de debug/test (inoffensive en production) */
 window.__game = {
   get phase(){ return phase; },
+  get view(){ return { target:[+orbitTarget.x.toFixed(3), +orbitTarget.y.toFixed(3), +orbitTarget.z.toFixed(3)],
+    dist:+orbit.dist.toFixed(3), az:+orbit.az.toFixed(3), pol:+orbit.pol.toFixed(3) }; },
   get state(){ return { gold, lives, wave, kills, enemies:enemies.length,
     towers:towers.length, projectiles:projectiles.length, particles:pAlive,
     fps:Math.round(perf.fps), tier:perf.tier, scale:RENDER_SCALES[perf.scaleIdx], mode,
