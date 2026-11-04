@@ -2,7 +2,7 @@
 <html lang="fr">
 <!--
   ============================================================================
-  ARÈNE DÉFENSE v6 — Tower defense en réalité augmentée (fichier HTML unique)
+  ARÈNE DÉFENSE v7 — Tower defense en réalité augmentée (fichier HTML unique)
   ============================================================================
   Dessinez VOTRE terrain à 4 coins sur la table, choisissez le style de chemin
   (serpentin, zigzag, spirale, lacets, boucle, escalier, dédale — ou aléatoire)
@@ -28,7 +28,13 @@
     4. Touchez DIRECTEMENT l'endroit voulu dans le terrain pour y poser une tour
        (la tour apparaît là où le doigt touche, pas là où la caméra regarde).
     5. Lancez les vagues et défendez le cristal !
-    Un mode « Aperçu 3D » permet de jouer sans AR, sur cet écran.
+
+  Compatibilité : la RA exige Chrome sur Android + Google Play Services for AR.
+    Sur iPhone/iPad, Safari ne prend pas en charge WebXR : aucune demande de
+    caméra n'apparaît (c'est une limite d'Apple, pas un bug) — le bouton
+    « Jouer sans RA » y lance alors le même jeu en mode 3D à l'écran
+    (1 doigt = orbiter / poser, pincement ou molette = zoomer). Ce mode 3D
+    est aussi le repli sur Android sans ARCore et sur ordinateur.
 
   Performances : réticule ancré sur le plan du terrain dès le 1er coin
   (projection regard/plan → zéro clignotement, le hit-test n'est plus
@@ -60,19 +66,25 @@
     --text:#eef4f8; --danger:#f87171;
   }
   *{ box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  /* touch-action : le canvas et le HUD de jeu interdisent tout geste du
+     navigateur ; l'écran d'accueil garde le défilement vertical (petits
+     écrans / iPhone) — sinon impossible d'atteindre les boutons. */
   html,body{ margin:0; height:100%; overflow:hidden; background:var(--bg); color:var(--text);
     font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
-    touch-action:none; user-select:none; -webkit-user-select:none; }
+    overscroll-behavior:none; user-select:none; -webkit-user-select:none;
+    -webkit-touch-callout:none; }
   button{ font:inherit; cursor:pointer; border:none; border-radius:12px; touch-action:manipulation; }
-  canvas.gl{ position:fixed; inset:0; z-index:1; display:block; }
-  #overlay{ position:fixed; inset:0; z-index:5; pointer-events:none; }
+  canvas.gl{ position:fixed; inset:0; z-index:1; display:block; touch-action:none; }
+  #overlay{ position:fixed; inset:0; z-index:5; pointer-events:none; touch-action:none; }
   #intro{ position:fixed; inset:0; z-index:10; display:flex; align-items:center; justify-content:center;
-    padding:24px; overflow:auto; background:radial-gradient(1200px 800px at 50% -10%, #16283a 0%, #0b0f14 60%); }
+    padding:24px; overflow:auto; touch-action:pan-y; overscroll-behavior:contain;
+    background:radial-gradient(1200px 800px at 50% -10%, #16283a 0%, #0b0f14 60%); }
   .hidden{ display:none !important; }
 
   /* ---- écran d'accueil ---- */
   .intro-card{ width:min(430px,100%); background:var(--panel); border:1px solid rgba(255,255,255,.09);
-    border-radius:20px; padding:26px 24px; box-shadow:0 20px 60px rgba(0,0,0,.5); backdrop-filter:blur(14px); }
+    border-radius:20px; padding:26px 24px; box-shadow:0 20px 60px rgba(0,0,0,.5);
+    backdrop-filter:blur(14px); -webkit-backdrop-filter:blur(14px); }
   .logo{ font-size:44px; text-align:center; }
   h1{ margin:.15em 0 .1em; text-align:center; font-size:26px; letter-spacing:.5px; }
   .tagline{ text-align:center; color:#b8c7d1; font-size:14px; margin:0 0 16px; line-height:1.45; }
@@ -81,6 +93,7 @@
   .capa{ font-size:13px; line-height:1.45; border-radius:10px; padding:10px 12px; margin-bottom:16px;
     color:#c6d5de; background:rgba(255,255,255,.05); border:1px solid rgba(255,255,255,.09); }
   .capa.ok{ color:#86efac; border-color:rgba(134,239,172,.35); background:rgba(134,239,172,.08); }
+  .capa a,.errorbox a,.warn a{ color:#93c5fd; }
   .primary{ display:block; width:100%; padding:14px 18px; font-size:16px; font-weight:600; color:#06222b;
     background:linear-gradient(180deg,#34e0f5,#18b5cc); box-shadow:0 6px 24px rgba(34,211,238,.35); }
   .primary:active{ transform:translateY(1px); }
@@ -98,7 +111,8 @@
     padding:calc(env(safe-area-inset-top,0px) + 10px) 12px 0; }
   #topbar{ display:flex; gap:8px; justify-content:center; flex-wrap:wrap; }
   .stat{ background:var(--panel); border:1px solid rgba(255,255,255,.14); border-radius:999px;
-    padding:5px 13px; font-size:14px; color:#dcebf3; backdrop-filter:blur(10px);
+    padding:5px 13px; font-size:14px; color:#dcebf3;
+    backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px);
     font-variant-numeric:tabular-nums; }
   .stat b{ color:#fff; font-weight:700; }
   .stat.gold b{ color:var(--gold); } .stat.lives b{ color:#fca5a5; } .stat.wave b{ color:#a5f3fc; }
@@ -136,7 +150,8 @@
   #towersRow{ display:flex; gap:8px; justify-content:center; }
   .chip{ flex:1 1 0; max-width:150px; padding:9px 6px; font-size:12.5px; line-height:1.25; color:#e8f2f6;
     background:rgba(10,16,24,.85); border:1px solid rgba(255,255,255,.16); border-radius:13px;
-    backdrop-filter:blur(10px); display:flex; flex-direction:column; align-items:center; gap:2px; }
+    backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px);
+    display:flex; flex-direction:column; align-items:center; gap:2px; }
   .chip .nm{ font-weight:600; } .chip .pr{ color:var(--gold); font-weight:700; font-size:12px; }
   .chip .ds{ font-size:10.5px; color:#9fb3c0; }
   .chip.selected{ border-color:var(--accent); box-shadow:0 0 0 2px rgba(34,211,238,.35),
@@ -149,7 +164,8 @@
     background:linear-gradient(180deg,#6ee7b7,#34d399); box-shadow:0 6px 20px rgba(52,211,153,.35); }
   #btnRescue:active{ transform:translateY(1px); }
   #btnQuit{ padding:13px 16px; font-size:14px; color:#fda4af; background:rgba(10,16,24,.85);
-    border:1px solid rgba(248,113,113,.4); border-radius:13px; backdrop-filter:blur(10px); }
+    border:1px solid rgba(248,113,113,.4); border-radius:13px;
+    backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px); }
 
   #toast{ position:absolute; left:50%; bottom:calc(env(safe-area-inset-bottom,0px) + 132px);
     transform:translate(-50%,8px); background:rgba(20,28,36,.94); border:1px solid rgba(255,255,255,.16);
@@ -346,7 +362,7 @@
       cristal contre des hordes d'ennemis animés, pendant qu'arches et spores
       lumineuses habillent l'arène !</p>
     <ol class="steps">
-      <li><b>Autorisez la caméra</b> au démarrage.</li>
+      <li>En RA : <b>autorisez la caméra</b> au démarrage — en mode 3D, <b>aucune caméra</b> n'est utilisée.</li>
       <li><b>Balayez lentement la table</b> pour la scanner, puis touchez <b>4 fois</b> pour
         tracer les <b>coins de votre terrain</b> — taille libre (≈ 30 cm à 1,2 m).</li>
       <li><b>Validez puis choisissez le style et la difficulté</b> : l'application
@@ -372,9 +388,11 @@
       <button id="btnClearSave" class="secondary">🗑 Effacer cette sauvegarde</button>
     </div>
     <button id="btnStartAR" class="primary">🎮 Démarrer en réalité augmentée</button>
-    <button id="btnStartPreview" class="secondary">🖥️ Aperçu 3D sur cet écran</button>
+    <button id="btnStartPreview" class="secondary">🎮 Jouer sans RA — mode 3D</button>
     <p class="footnote">
       AR recommandée : Chrome sur Android + Google Play Services for AR.<br />
+      iPhone/iPad et ordinateurs : jouez en <b>mode 3D</b> — Safari ne prend pas en charge
+      la RA Web, donc <b>aucune demande de caméra n'apparaît, c'est normal</b>.<br />
       La page doit être servie en <b>HTTPS</b> (caméra et XR l'exigent).<br />
       Graphismes ajustés automatiquement selon les FPS de l'appareil.
     </p>
@@ -2392,8 +2410,8 @@ function updateHintForPhase(){
     setHint(mode === 'xr'
       ? "📱 Balayez lentement la table pour la <b>scanner</b> — touchez l'écran pour poser le <b>coin " +
         (quadPts.length + 1) + "/4</b> du terrain (taille libre, ~30 cm à 1,2 m)"
-      : "Cliquez sur le sol pour poser le <b>coin " + (quadPts.length + 1) +
-        "/4</b> du terrain (glissez pour orbiter, molette/pincez pour zoomer)");
+      : "Touchez le sol pour poser le <b>coin " + (quadPts.length + 1) +
+        "/4</b> du terrain (glissez pour orbiter, pincez à deux doigts ou molette pour zoomer)");
   else if (phase === 'confirm-quad')
     setHint("Terrain tracé ! <b>Validez</b> puis choisissez la <b>difficulté</b> — le chemin sera dessiné automatiquement");
   else if (phase === 'pick-difficulty')
@@ -3596,13 +3614,24 @@ function handleXRFailure(err){
   const msg = String((err && err.message) || '');
   let reason;
   if (name === 'NotAllowedError' || /permission|denied/i.test(msg))
-    reason = "L'autorisation caméra a été refusée — réactivez-la via l'icône 🔒 puis rechargez la page.";
-  else if (name === 'NotFoundError') reason = "ARCore (Google Play Services for AR) semble absent de cet appareil.";
-  else if (name === 'NotSupportedError') reason = "La réalité augmentée WebXR n'est pas disponible dans ce navigateur.";
+    reason = "L'autorisation <b>caméra</b> a été refusée — touchez l'icône 🔒 de la barre d'adresse, " +
+      "réactivez la caméra puis rechargez la page.";
+  else if (name === 'NotFoundError')
+    reason = "ARCore (<b>Google Play Services pour la réalité augmentée</b>) est absent de cet appareil." +
+      (isAndroid ? " Installez-le depuis le <a href='" + PLAY_ARCORE + "' target='_blank' rel='noopener'>Play Store</a>" +
+        " puis rechargez la page." : "");
+  else if (name === 'NotSupportedError')
+    reason = isIOS
+      ? "<b>iPhone / iPad</b> : Safari ne prend pas en charge la réalité augmentée Web (WebXR) — " +
+        "la caméra n'est donc jamais demandée, ce n'est pas un bug de l'application."
+      : "La réalité augmentée WebXR n'est pas disponible dans ce navigateur — sur mobile, " +
+        "essayez <b>Chrome sur Android</b> avec ARCore.";
   else if (name === 'SecurityError') reason = "Page non servie en HTTPS : la XR exige un contexte sécurisé.";
   else reason = "Erreur inattendue : " + (msg || name) + ".";
-  xrFailNote.innerHTML = reason + " Le <b>mode aperçu 3D</b> reste utilisable.";
+  xrFailNote.innerHTML = reason +
+    "<br>👉 En attendant, le <b>mode 3D</b> propose exactement le même jeu, sans caméra.";
   xrFailNote.classList.remove('hidden');
+  promotePreview();   /* le mode 3D devient l'action principale */
 }
 
 /* ============================================================
@@ -3650,13 +3679,42 @@ function screenToArenaLocal(clientX, clientY){
   if (!isFinite(t) || t <= 0) return null;
   return _ray.ray.origin.clone().addScaledVector(_ray.ray.direction, t);
 }
+/* ---- interaction tactile/souris du mode 3D ----
+   1 doigt glissé = orbiter · 1 doigt posé bref = toucher (poser coin / tour)
+   2 doigts (pincement) = zoomer · molette = zoomer
+   Le suivi multi-pointeurs garantit qu'un pincement n'est JAMAIS interprété
+   comme un toucher de placement (sinon : tours fantômes sur iPhone). */
+const activePtrs = new Map();
+let pinchBase = 0, pinchDist0 = 0, multiTouch = false;
+const DIST_MIN = .5, DIST_MAX = 3.2;        /* limites du zoom orbite (m) */
 canvasEl.addEventListener('pointerdown', e => {
   if (mode !== 'preview') return;
-  ptr.down = true; ptr.moved = false; ptr.x0 = e.clientX; ptr.y0 = e.clientY; ptr.t0 = performance.now();
+  activePtrs.set(e.pointerId, { x:e.clientX, y:e.clientY });
   try { canvasEl.setPointerCapture(e.pointerId); } catch (err) {}
+  if (activePtrs.size === 1){
+    multiTouch = false;
+    ptr.down = true; ptr.moved = false; ptr.x0 = e.clientX; ptr.y0 = e.clientY; ptr.t0 = performance.now();
+  } else {                                   /* 2e doigt : pincement → zoom */
+    multiTouch = true; ptr.moved = true;     /* un pincement n'est jamais un tap */
+    const pts = [...activePtrs.values()];
+    pinchBase = Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y);
+    pinchDist0 = orbit.dist;
+  }
 });
 canvasEl.addEventListener('pointermove', e => {
-  if (mode !== 'preview' || !ptr.down) return;
+  if (mode !== 'preview') return;
+  const p = activePtrs.get(e.pointerId);
+  if (p){ p.x = e.clientX; p.y = e.clientY; }
+  if (p && activePtrs.size >= 2){             /* zoom pincé */
+    const pts = [...activePtrs.values()];
+    const d = Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y);
+    if (pinchBase > 4){
+      orbit.dist = Math.min(DIST_MAX, Math.max(DIST_MIN, pinchDist0 * pinchBase / Math.max(d, 1)));
+      applyOrbit();
+    }
+    return;
+  }
+  if (!ptr.down || !p) return;
   const dx = e.clientX - ptr.x0, dy = e.clientY - ptr.y0;
   if (Math.abs(dx) + Math.abs(dy) > 12) ptr.moved = true;
   if (ptr.moved){
@@ -3667,9 +3725,18 @@ canvasEl.addEventListener('pointermove', e => {
   }
 });
 canvasEl.addEventListener('pointerup', e => {
-  if (mode !== 'preview' || !ptr.down) return;
-  ptr.down = false;
-  const quick = performance.now() - ptr.t0 < 400 && !ptr.moved;
+  if (mode !== 'preview' || !activePtrs.has(e.pointerId)) return;
+  activePtrs.delete(e.pointerId);
+  let single = false;
+  if (activePtrs.size === 0){
+    ptr.down = false;
+    single = !multiTouch;
+    multiTouch = false;
+  } else if (activePtrs.size === 1){          /* fin de pincement : le doigt restant re-drague */
+    const rest = [...activePtrs.values()][0];
+    ptr.x0 = rest.x; ptr.y0 = rest.y;
+  }
+  const quick = single && performance.now() - ptr.t0 < 400 && !ptr.moved;
   if (!quick || phase === 'gameover') return;
   if (isSetupPhase() && phase !== 'draw-quad') return;  /* confirmation / difficulté : boutons */
   const p = screenToArenaLocal(e.clientX, e.clientY);
@@ -3681,7 +3748,16 @@ canvasEl.addEventListener('pointerup', e => {
   if (!p){ toast("Visez l'intérieur du terrain"); return; }
   placeTower(p);
 });
-canvasEl.addEventListener('pointercancel', () => { ptr.down = false; });
+canvasEl.addEventListener('pointercancel', e => {
+  activePtrs.delete(e.pointerId);
+  if (!activePtrs.size){ ptr.down = false; multiTouch = false; }
+});
+canvasEl.addEventListener('wheel', e => {
+  if (mode !== 'preview') return;
+  e.preventDefault();
+  orbit.dist = Math.min(DIST_MAX, Math.max(DIST_MIN, orbit.dist * Math.exp(e.deltaY * .0012)));
+  applyOrbit();
+}, { passive:false });
 
 /* curseur de tracé + aperçu de portée en mode preview (survol souris) */
 canvasEl.addEventListener('pointermove', e => {
@@ -3921,8 +3997,22 @@ window.addEventListener('resize', () => {
 document.addEventListener('contextmenu', e => e.preventDefault());
 
 /* ============================================================
-   Détection des capacités
+   Détection des capacités + orientation selon l'appareil
+   (iPhone : pas de WebXR → aucune demande caméra, c'est normal ;
+    Android sans ARCore : lien Play Store ; le mode 3D prend
+    toujours le relais pour que le jeu soit jouable partout)
    ============================================================ */
+const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent)
+  || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+const isAndroid = /Android/i.test(navigator.userAgent);
+const PLAY_ARCORE = 'https://play.google.com/store/apps/details?id=com.google.ar.core';
+const PLAY_DEVICES = 'https://developers.google.com/ar/devices';
+function promotePreview(){
+  if (btnStartPreview.classList.contains('primary')) return;
+  btnStartPreview.classList.remove('secondary');
+  btnStartPreview.classList.add('primary');
+  btnStartPreview.textContent = '🎮 Jouer maintenant — mode 3D';
+}
 (async function detect(){
   if (!window.isSecureContext) $('secureWarn').classList.remove('hidden');
   let xrOK = false;
@@ -3933,11 +4023,29 @@ document.addEventListener('contextmenu', e => e.preventDefault());
     xrSupported = xrOK;
     capaInfo.innerHTML = "✅ Réalité augmentée <b>disponible</b> sur cet appareil (WebXR + ARCore).";
     capaInfo.classList.add('ok');
+    return;
+  }
+  /* ---- AR indisponible : diagnostic cibillé + mode 3D en vedette ---- */
+  if (isIOS){
+    capaInfo.innerHTML = "📱 <b>iPhone / iPad détecté</b> — Safari ne prend pas en charge la " +
+      "réalité augmentée Web (WebXR) : <b>la demande d'accès à la caméra n'apparaît donc jamais</b>, " +
+      "et ce n'est pas un bug de l'application.<br>👉 Bonne nouvelle : le jeu est <b>entièrement jouable " +
+      "en mode 3D</b> — même terrain, mêmes vagues, mêmes ennemis, au doigt !";
+    btnStartAR.classList.add('hidden');            /* pas de bouton mort sur iOS */
+  } else if (isAndroid){
+    capaInfo.innerHTML = "⚠️ La RA nécessite <b>Google Play Services pour la réalité augmentée</b> " +
+      "(ARCore), qui manque ou n'est pas encore installé ici :<br>1️⃣ Ouvrez le " +
+      "<a href='" + PLAY_ARCORE + "' target='_blank' rel='noopener'>Play Store</a>, mettez à jour " +
+      "« Services Google Play pour la RA », puis rechargez la page ;<br>2️⃣ Ou vérifiez que votre appareil est " +
+      "<a href='" + PLAY_DEVICES + "' target='_blank' rel='noopener'>compatible ARCore</a> " +
+      "(certains modèles ne le sont malheureusement pas).<br>👉 En attendant, le <b>mode 3D</b> est pleinement jouable.";
+    btnStartAR.disabled = true;
   } else {
-    capaInfo.innerHTML = "ℹ️ AR indisponible ici — essayez l'<b>aperçu 3D</b>, ou ouvrez cette page dans " +
-      "<b>Chrome sur Android</b> avec <i>Google Play Services for AR</i>.";
+    capaInfo.innerHTML = "ℹ️ La RA WebXR n'est pas disponible dans ce navigateur — sur mobile, elle exige " +
+      "<b>Chrome sur Android</b> + <i>Google Play Services for AR</i>. Sur cet appareil, lancez le <b>mode 3D</b>.";
     btnStartAR.disabled = true;
   }
+  promotePreview();
 })();
 
 refreshSaveUI();   /* l'accueil propose la reprise si une sauvegarde existe */
